@@ -55,7 +55,7 @@ class EcoFlowAbstractEntity(Entity):
     def title(self) -> str:
         return self._attr_name
 
-    def with_category(self, category: EntityCategory) -> Self:
+    def with_category(self, category: EntityCategory | None) -> Self:
         self._attr_entity_category = category
         return self
 
