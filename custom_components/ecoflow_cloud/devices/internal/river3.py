@@ -482,7 +482,11 @@ class River3(BaseInternalDevice):
         try:
             merged = self._decode_all_headers(raw_data)
             if not merged:
-                return super()._prepare_data(raw_data)
+                # raw_data is always protobuf for River 3, never JSON - the
+                # generic BaseDevice JSON fallback is guaranteed to fail on it
+                # (it'll decode-as-utf8/json.loads and blow up), so don't try.
+                _LOGGER.debug("[River3] No recognized fields decoded from message; dropping it.")
+                return {}
 
             # River 3 firmware doesn't send cfg_ac_out_open directly. The
             # live AC output state is carried by flow_info_ac_out instead
@@ -506,7 +510,7 @@ class River3(BaseInternalDevice):
             return {"params": flat, "all_fields": merged}
         except Exception as e:
             _LOGGER.debug(f"[River3] Data processing failed: {e}")
-            return super()._prepare_data(raw_data)
+            return {}
 
     def _perform_xor_decode(self, pdata: bytes, header_info: dict[str, Any]) -> bytes:
         """Perform XOR decoding if required by header info."""
@@ -606,6 +610,12 @@ class River3(BaseInternalDevice):
             except Exception as e:
                 _LOGGER.debug("Failed to decode as fallback BMSHeartBeatReport: %s", e)
 
+            _LOGGER.debug(
+                "[River3] Unhandled message type: cmd_func=%s, cmd_id=%s, pdata_len=%d",
+                cmd_func,
+                cmd_id,
+                len(pdata),
+            )
             return {}
         except Exception as e:
             _LOGGER.debug(f"Message decode error for cmdFunc={cmd_func}, cmdId={cmd_id}: {e}")
