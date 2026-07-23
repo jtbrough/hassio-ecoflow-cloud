@@ -428,7 +428,10 @@ class River3(BaseInternalDevice):
                 const.LIGHT_MODE,
                 const.LIGHT_MODE_OPTIONS,
                 lambda value: _create_river3_proto_command("cfg_led_mode", int(value), device.device_data.sn),
-            ),
+            )
+            # It's a light, not a set-and-forget setting like the other selects
+            # here - surface it under Controls rather than Configuration.
+            .with_category(None),
         ]
 
     def _decode_all_headers(self, raw_data: bytes) -> dict[str, Any]:
