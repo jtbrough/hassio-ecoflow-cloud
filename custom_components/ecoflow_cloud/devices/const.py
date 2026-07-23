@@ -291,6 +291,14 @@ AC_SLOW_CHARGE = "AC Slow Charging"
 
 DC_MODE = "DC Mode"
 
+LIGHT_MODE = "Light Mode"
+LIGHT_MODE_OPTIONS = {
+    "Off": 0,
+    "Dim": 1,
+    "Bright": 2,
+    "SOS": 3,
+}
+
 TEMPERATURE = "Temperature"
 BATTERY_TEMP = "Battery Temperature"
 MIN_CELL_TEMP = "Min Cell Temperature"

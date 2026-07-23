@@ -66,6 +66,7 @@ devices: OrderedDict[str, Type[BaseDevice]] = OrderedDict[str, Type[BaseDevice]]
         "RIVER_2_MAX": internal_river2_max.River2Max,
         "RIVER_2_PRO": internal_river2_pro.River2Pro,
         "RIVER_3": internal_river3.River3,
+        "RIVER_3_PLUS": internal_river3.River3,
         "DELTA_PRO": internal_delta_pro.DeltaPro,
         "DELTA_PRO_3": internal_delta_pro_3.DeltaPro3,
         "DELTA_PRO_ULTRA_X": internal_delta_pro_ultra_x.DeltaProUltraX,

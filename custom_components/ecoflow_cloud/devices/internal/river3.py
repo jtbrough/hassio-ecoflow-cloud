@@ -203,7 +203,7 @@ class River3(BaseInternalDevice):
             CapacitySensorEntity(client, self, "bms_design_cap", const.MAIN_DESIGN_CAPACITY, False),
             CapacitySensorEntity(client, self, "bms_full_cap", const.MAIN_FULL_CAPACITY, False),
             CapacitySensorEntity(client, self, "bms_remain_cap", const.MAIN_REMAIN_CAPACITY, False),
-            StateOfHealthSensorEntity(client, self, "bms_batt_soh", const.SOH),
+            StateOfHealthSensorEntity(client, self, "cms_batt_soh", const.SOH),
             LevelSensorEntity(client, self, "cms_batt_soc", const.COMBINED_BATTERY_LEVEL),
             River3ChargingStateSensorEntity(client, self, "bms_chg_dsg_state", const.BATTERY_CHARGING_STATE),
             InWattsSensorEntity(client, self, "pow_in_sum_w", const.TOTAL_IN_POWER).with_energy(),
@@ -239,6 +239,29 @@ class River3(BaseInternalDevice):
             OutEnergySensorEntity(client, self, "dc12v_out_energy", "DC 12V Output Energy", False),
             OutEnergySensorEntity(client, self, "typec_out_energy", "Type-C Output Energy", False),
             OutEnergySensorEntity(client, self, "usba_out_energy", "USB-A Output Energy", False),
+            # River 3 Plus expansion battery pack, labeled "Extra Battery" in the
+            # EcoFlow app (BMSHeartBeatReport num=1; num=0 is the built-in main
+            # pack). Stays unavailable on units without one; auto-enables itself
+            # once real data arrives.
+            LevelSensorEntity(client, self, "bms_pack1_soc", const.SLAVE_BATTERY_LEVEL, False, True)
+            .attr("bms_pack1_design_cap", const.ATTR_DESIGN_CAPACITY, 0)
+            .attr("bms_pack1_full_cap", const.ATTR_FULL_CAPACITY, 0)
+            .attr("bms_pack1_remain_cap", const.ATTR_REMAIN_CAPACITY, 0),
+            CapacitySensorEntity(client, self, "bms_pack1_design_cap", const.SLAVE_DESIGN_CAPACITY, False),
+            CapacitySensorEntity(client, self, "bms_pack1_full_cap", const.SLAVE_FULL_CAPACITY, False),
+            CapacitySensorEntity(client, self, "bms_pack1_remain_cap", const.SLAVE_REMAIN_CAPACITY, False),
+            StateOfHealthSensorEntity(client, self, "bms_pack1_soh", const.SLAVE_SOH),
+            CyclesSensorEntity(client, self, "bms_pack1_cycles", const.SLAVE_CYCLES, False, True),
+            TempSensorEntity(client, self, "bms_pack1_temp", const.SLAVE_BATTERY_TEMP, False, True)
+            .attr("bms_pack1_min_cell_temp", const.ATTR_MIN_CELL_TEMP, 0)
+            .attr("bms_pack1_max_cell_temp", const.ATTR_MAX_CELL_TEMP, 0),
+            TempSensorEntity(client, self, "bms_pack1_min_cell_temp", const.SLAVE_MIN_CELL_TEMP, False),
+            TempSensorEntity(client, self, "bms_pack1_max_cell_temp", const.SLAVE_MAX_CELL_TEMP, False),
+            MilliVoltSensorEntity(client, self, "bms_pack1_vol", const.SLAVE_BATTERY_VOLT, False)
+            .attr("bms_pack1_min_cell_vol", const.ATTR_MIN_CELL_VOLT, 0)
+            .attr("bms_pack1_max_cell_vol", const.ATTR_MAX_CELL_VOLT, 0),
+            MilliVoltSensorEntity(client, self, "bms_pack1_min_cell_vol", const.SLAVE_MIN_CELL_VOLT, False),
+            MilliVoltSensorEntity(client, self, "bms_pack1_max_cell_vol", const.SLAVE_MAX_CELL_VOLT, False),
             QuotaStatusSensorEntity(client, self),
         ]
 
@@ -398,6 +421,14 @@ class River3(BaseInternalDevice):
                 const.AC_TIMEOUT_OPTIONS,
                 lambda value: _create_river3_proto_command("ac_standby_time", int(value), device.device_data.sn),
             ),
+            DictSelectEntity(
+                client,
+                self,
+                "led_mode",
+                const.LIGHT_MODE,
+                const.LIGHT_MODE_OPTIONS,
+                lambda value: _create_river3_proto_command("cfg_led_mode", int(value), device.device_data.sn),
+            ),
         ]
 
     def _decode_all_headers(self, raw_data: bytes) -> dict[str, Any]:
@@ -540,7 +571,17 @@ class River3(BaseInternalDevice):
                 try:
                     msg_bms_heartbeat = ef_river3_pb2.River3BMSHeartBeatReport()
                     msg_bms_heartbeat.ParseFromString(pdata)
-                    return self._protobuf_to_dict(msg_bms_heartbeat)
+                    result = self._protobuf_to_dict(msg_bms_heartbeat)
+                    # River 3 Plus can report a second (expansion) battery pack over
+                    # this same message type, distinguished only by "num". The
+                    # unprefixed keys are left as-is (always the most recently seen
+                    # pack, same as before) and every pack is additionally exposed
+                    # under its own "bms_pack{num}_" namespace so a second pack's
+                    # readings don't silently overwrite the first's.
+                    pack_num = result.get("num")
+                    if pack_num is not None:
+                        result.update({f"bms_pack{pack_num}_{k}": v for k, v in result.items()})
+                    return result
                 except Exception as e:
                     _LOGGER.debug(f"Failed to decode as BMSHeartBeatReport (cmdFunc={cmd_func}, cmdId={cmd_id}): {e}")
                     return {}

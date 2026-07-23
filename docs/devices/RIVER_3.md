@@ -5,7 +5,7 @@
 - Main Design Capacity (`bms_design_cap`)   _(disabled)_
 - Main Full Capacity (`bms_full_cap`)   _(disabled)_
 - Main Remain Capacity (`bms_remain_cap`)   _(disabled)_
-- State of Health (`bms_batt_soh`)
+- State of Health (`cms_batt_soh`)
 - Battery Level (`cms_batt_soc`)
 - Battery Charging State (`bms_chg_dsg_state`)
 - Total In Power (`pow_in_sum_w`) (energy:  _[Device Name]_ Total In  Energy)
@@ -36,6 +36,18 @@
 - DC 12V Output Energy (`dc12v_out_energy`)   _(disabled)_
 - Type-C Output Energy (`typec_out_energy`)   _(disabled)_
 - USB-A Output Energy (`usba_out_energy`)   _(disabled)_
+- Slave Battery Level (`bms_pack1_soc`)   _(auto)_
+- Slave Design Capacity (`bms_pack1_design_cap`)   _(disabled)_
+- Slave Full Capacity (`bms_pack1_full_cap`)   _(disabled)_
+- Slave Remain Capacity (`bms_pack1_remain_cap`)   _(disabled)_
+- Slave State of Health (`bms_pack1_soh`)
+- Slave Cycles (`bms_pack1_cycles`)   _(auto)_
+- Slave Battery Temperature (`bms_pack1_temp`)   _(auto)_
+- Slave Min Cell Temperature (`bms_pack1_min_cell_temp`)   _(disabled)_
+- Slave Max Cell Temperature (`bms_pack1_max_cell_temp`)   _(disabled)_
+- Slave Battery Volts (`bms_pack1_vol`)   _(disabled)_
+- Slave Min Cell Volts (`bms_pack1_min_cell_vol`)   _(disabled)_
+- Slave Max Cell Volts (`bms_pack1_max_cell_vol`)   _(disabled)_
 - Status
 
 *Switches*
@@ -58,5 +70,6 @@
 - Screen Timeout (`screen_off_time` -> `{"River3SendHeaderMsg": {"msg": [{"pdata": {"River3SetCommand": {"screen_off_time": 6666}}, "src": 32, "dest": 2, "d_src": 1, "d_dest": 1, "cmd_func": 254, "cmd_id": 17, "data_len": 3, "need_ack": 1, "product_id": 1, "version": 19, "payload_ver": 1, "device_sn": "SN"}]}}` [Never (0), 10 sec (10), 30 sec (30), 1 min (60), 5 min (300), 30 min (1800)])
 - Unit Timeout (`dev_standby_time` -> `{"River3SendHeaderMsg": {"msg": [{"pdata": {"River3SetCommand": {"dev_standby_time": 6666}}, "src": 32, "dest": 2, "d_src": 1, "d_dest": 1, "cmd_func": 254, "cmd_id": 17, "data_len": 3, "need_ack": 1, "product_id": 1, "version": 19, "payload_ver": 1, "device_sn": "SN"}]}}` [Never (0), 30 min (30), 1 hr (60), 2 hr (120), 4 hr (240), 6 hr (360), 12 hr (720), 24 hr (1440)])
 - AC Timeout (`ac_standby_time` -> `{"River3SendHeaderMsg": {"msg": [{"pdata": {"River3SetCommand": {"ac_standby_time": 6666}}, "src": 32, "dest": 2, "d_src": 1, "d_dest": 1, "cmd_func": 254, "cmd_id": 17, "data_len": 3, "need_ack": 1, "product_id": 1, "version": 19, "payload_ver": 1, "device_sn": "SN"}]}}` [Never (0), 30 min (30), 1 hr (60), 2 hr (120), 4 hr (240), 6 hr (360), 12 hr (720), 24 hr (1440)])
+- Light Mode (`led_mode` -> `{"River3SendHeaderMsg": {"msg": [{"pdata": {"River3SetCommand": {"cfg_led_mode": 6666}}, "src": 32, "dest": 2, "d_src": 1, "d_dest": 1, "cmd_func": 254, "cmd_id": 17, "data_len": 4, "need_ack": 1, "product_id": 1, "version": 19, "payload_ver": 1, "device_sn": "SN"}]}}` [Off (0), Dim (1), Bright (2), SOS (3)])
 
 
