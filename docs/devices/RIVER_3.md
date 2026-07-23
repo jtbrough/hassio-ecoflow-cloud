@@ -2,9 +2,9 @@
 
 *Sensors*
 - Main Battery Level (`bms_batt_soc`)
-- Main Design Capacity (`bms_design_cap`)   _(disabled)_
-- Main Full Capacity (`bms_full_cap`)   _(disabled)_
-- Main Remain Capacity (`bms_remain_cap`)   _(disabled)_
+- Main Design Capacity (`bms_pack0_design_cap`)   _(disabled)_
+- Main Full Capacity (`bms_pack0_full_cap`)   _(disabled)_
+- Main Remain Capacity (`bms_pack0_remain_cap`)   _(disabled)_
 - State of Health (`cms_batt_soh`)
 - Battery Level (`cms_batt_soc`)
 - Battery Charging State (`bms_chg_dsg_state`)
@@ -26,10 +26,10 @@
 - PCS AC Temperature (`temp_pcs_ac`)
 - Battery Temperature (`bms_min_cell_temp`)
 - Max Cell Temperature (`bms_max_cell_temp`)   _(disabled)_
-- Battery Volts (`bms_batt_vol`)   _(disabled)_
-- Min Cell Volts (`bms_min_cell_vol`)   _(disabled)_
-- Max Cell Volts (`bms_max_cell_vol`)   _(disabled)_
-- Cycles (`cycles`)
+- Battery Volts (`bms_pack0_vol`)   _(disabled)_
+- Min Cell Volts (`bms_pack0_min_cell_vol`)   _(disabled)_
+- Max Cell Volts (`bms_pack0_max_cell_vol`)   _(disabled)_
+- Cycles (`bms_pack0_cycles`)
 - AC Output Energy (`ac_out_energy`)
 - AC Input Energy (`ac_in_energy`)
 - Solar In Energy (`pv_in_energy`)

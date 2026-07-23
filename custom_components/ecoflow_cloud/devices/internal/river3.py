@@ -46,7 +46,6 @@ from custom_components.ecoflow_cloud.sensor import (
     RemainSensorEntity,
     StateOfHealthSensorEntity,
     TempSensorEntity,
-    VoltSensorEntity,
 )
 from custom_components.ecoflow_cloud.switch import BeeperEntity, EnabledEntity
 
@@ -196,13 +195,17 @@ class River3(BaseInternalDevice):
     @override
     def sensors(self, client: EcoflowApiClient) -> list[SensorEntity]:
         return [
+            # bms_design_cap/bms_full_cap/bms_remain_cap (DisplayPropertyUpload /
+            # RuntimePropertyUpload) never populate on real hardware; the equivalent
+            # BMSHeartBeatReport fields for the main pack (num=0), exposed under
+            # bms_pack0_*, do.
             LevelSensorEntity(client, self, "bms_batt_soc", const.MAIN_BATTERY_LEVEL)
-            .attr("bms_design_cap", const.ATTR_DESIGN_CAPACITY, 0)
-            .attr("bms_full_cap", const.ATTR_FULL_CAPACITY, 0)
-            .attr("bms_remain_cap", const.ATTR_REMAIN_CAPACITY, 0),
-            CapacitySensorEntity(client, self, "bms_design_cap", const.MAIN_DESIGN_CAPACITY, False),
-            CapacitySensorEntity(client, self, "bms_full_cap", const.MAIN_FULL_CAPACITY, False),
-            CapacitySensorEntity(client, self, "bms_remain_cap", const.MAIN_REMAIN_CAPACITY, False),
+            .attr("bms_pack0_design_cap", const.ATTR_DESIGN_CAPACITY, 0)
+            .attr("bms_pack0_full_cap", const.ATTR_FULL_CAPACITY, 0)
+            .attr("bms_pack0_remain_cap", const.ATTR_REMAIN_CAPACITY, 0),
+            CapacitySensorEntity(client, self, "bms_pack0_design_cap", const.MAIN_DESIGN_CAPACITY, False),
+            CapacitySensorEntity(client, self, "bms_pack0_full_cap", const.MAIN_FULL_CAPACITY, False),
+            CapacitySensorEntity(client, self, "bms_pack0_remain_cap", const.MAIN_REMAIN_CAPACITY, False),
             StateOfHealthSensorEntity(client, self, "cms_batt_soh", const.SOH),
             LevelSensorEntity(client, self, "cms_batt_soc", const.COMBINED_BATTERY_LEVEL),
             River3ChargingStateSensorEntity(client, self, "bms_chg_dsg_state", const.BATTERY_CHARGING_STATE),
@@ -227,12 +230,16 @@ class River3(BaseInternalDevice):
                 "bms_max_cell_temp", const.ATTR_MAX_CELL_TEMP, 0
             ),
             TempSensorEntity(client, self, "bms_max_cell_temp", const.MAX_CELL_TEMP, False),
-            VoltSensorEntity(client, self, "bms_batt_vol", const.BATTERY_VOLT, False)
-            .attr("bms_min_cell_vol", const.ATTR_MIN_CELL_VOLT, 0)
-            .attr("bms_max_cell_vol", const.ATTR_MAX_CELL_VOLT, 0),
-            MilliVoltSensorEntity(client, self, "bms_min_cell_vol", const.MIN_CELL_VOLT, False),
-            MilliVoltSensorEntity(client, self, "bms_max_cell_vol", const.MAX_CELL_VOLT, False),
-            CyclesSensorEntity(client, self, "cycles", const.CYCLES),
+            # bms_batt_vol/bms_min_cell_vol/bms_max_cell_vol never populate either;
+            # same fix, same reason - read the main pack's BMSHeartBeatReport data
+            # instead. bms_pack0_vol is millivolts (like the slave pack's), hence
+            # MilliVoltSensorEntity rather than a Volts-scale sensor.
+            MilliVoltSensorEntity(client, self, "bms_pack0_vol", const.BATTERY_VOLT, False)
+            .attr("bms_pack0_min_cell_vol", const.ATTR_MIN_CELL_VOLT, 0)
+            .attr("bms_pack0_max_cell_vol", const.ATTR_MAX_CELL_VOLT, 0),
+            MilliVoltSensorEntity(client, self, "bms_pack0_min_cell_vol", const.MIN_CELL_VOLT, False),
+            MilliVoltSensorEntity(client, self, "bms_pack0_max_cell_vol", const.MAX_CELL_VOLT, False),
+            CyclesSensorEntity(client, self, "bms_pack0_cycles", const.CYCLES),
             OutEnergySensorEntity(client, self, "ac_out_energy", "AC Output Energy"),
             InEnergySensorEntity(client, self, "ac_in_energy", "AC Input Energy"),
             InEnergySolarSensorEntity(client, self, "pv_in_energy", const.SOLAR_IN_ENERGY),
