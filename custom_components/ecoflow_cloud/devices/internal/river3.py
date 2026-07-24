@@ -130,14 +130,34 @@ def _create_pack_sensors(
             MilliVoltSensorEntity(client, device, "bms_pack0_max_cell_vol", const.MAX_CELL_VOLT, False),
         ]
 
-    # For packs 1+, use generic names that work for any device type
-    # Pack type will be detected at runtime and logged
-    suffix = "expansion" if pack_num == 1 else f"pack{pack_num}"
-    level_const = const.SLAVE_BATTERY_LEVEL if pack_num == 1 else f"Battery Pack {pack_num} Level"
-    soh_const = const.SLAVE_SOH if pack_num == 1 else f"Battery Pack {pack_num} State of Health"
-    cycles_const = const.SLAVE_CYCLES if pack_num == 1 else f"Battery Pack {pack_num} Cycles"
-    temp_const = const.SLAVE_BATTERY_TEMP if pack_num == 1 else f"Battery Pack {pack_num} Temperature"
-    volt_const = const.SLAVE_BATTERY_VOLT if pack_num == 1 else f"Battery Pack {pack_num} Voltage"
+    # For packs 1+, generate names based on device type
+    # Start with generic/slave defaults, will be overridden based on actual device type
+    if pack_num == 1:
+        level_const = "Secondary Battery Level"  # Generic name, will be overridden at runtime
+        soh_const = "Secondary Battery State of Health"
+        cycles_const = "Secondary Battery Cycles"
+        temp_const = "Secondary Battery Temperature"
+        volt_const = "Secondary Battery Voltage"
+        des_cap_const = "Secondary Battery Design Capacity"
+        full_cap_const = "Secondary Battery Full Capacity"
+        remain_cap_const = "Secondary Battery Remain Capacity"
+        min_cell_temp_const = "Secondary Battery Min Cell Temperature"
+        max_cell_temp_const = "Secondary Battery Max Cell Temperature"
+        min_cell_volt_const = "Secondary Battery Min Cell Voltage"
+        max_cell_volt_const = "Secondary Battery Max Cell Voltage"
+    else:
+        level_const = f"Battery Pack {pack_num} Level"
+        soh_const = f"Battery Pack {pack_num} State of Health"
+        cycles_const = f"Battery Pack {pack_num} Cycles"
+        temp_const = f"Battery Pack {pack_num} Temperature"
+        volt_const = f"Battery Pack {pack_num} Voltage"
+        des_cap_const = f"Battery Pack {pack_num} Design Capacity"
+        full_cap_const = f"Battery Pack {pack_num} Full Capacity"
+        remain_cap_const = f"Battery Pack {pack_num} Remain Capacity"
+        min_cell_temp_const = f"Battery Pack {pack_num} Min Cell Temperature"
+        max_cell_temp_const = f"Battery Pack {pack_num} Max Cell Temperature"
+        min_cell_volt_const = f"Battery Pack {pack_num} Min Cell Voltage"
+        max_cell_volt_const = f"Battery Pack {pack_num} Max Cell Voltage"
 
     return [
         LevelSensorEntity(
@@ -149,15 +169,15 @@ def _create_pack_sensors(
         .attr(f"bms_pack{pack_num}_remain_cap", const.ATTR_REMAIN_CAPACITY, 0),
         CapacitySensorEntity(
             client, device, f"bms_pack{pack_num}_design_cap",
-            const.SLAVE_DESIGN_CAPACITY if pack_num == 1 else f"Battery Pack {pack_num} Design Capacity", False
+            des_cap_const, False
         ),
         CapacitySensorEntity(
             client, device, f"bms_pack{pack_num}_full_cap",
-            const.SLAVE_FULL_CAPACITY if pack_num == 1 else f"Battery Pack {pack_num} Full Capacity", False
+            full_cap_const, False
         ),
         CapacitySensorEntity(
             client, device, f"bms_pack{pack_num}_remain_cap",
-            const.SLAVE_REMAIN_CAPACITY if pack_num == 1 else f"Battery Pack {pack_num} Remain Capacity", False
+            remain_cap_const, False
         ),
         StateOfHealthSensorEntity(client, device, f"bms_pack{pack_num}_soh", soh_const),
         CyclesSensorEntity(client, device, f"bms_pack{pack_num}_cycles", cycles_const, False, True),
@@ -166,22 +186,22 @@ def _create_pack_sensors(
         .attr(f"bms_pack{pack_num}_max_cell_temp", const.ATTR_MAX_CELL_TEMP, 0),
         TempSensorEntity(
             client, device, f"bms_pack{pack_num}_min_cell_temp",
-            const.SLAVE_MIN_CELL_TEMP if pack_num == 1 else f"Battery Pack {pack_num} Min Cell Temperature", False
+            min_cell_temp_const, False
         ),
         TempSensorEntity(
             client, device, f"bms_pack{pack_num}_max_cell_temp",
-            const.SLAVE_MAX_CELL_TEMP if pack_num == 1 else f"Battery Pack {pack_num} Max Cell Temperature", False
+            max_cell_temp_const, False
         ),
         MilliVoltSensorEntity(client, device, f"bms_pack{pack_num}_vol", volt_const, False)
         .attr(f"bms_pack{pack_num}_min_cell_vol", const.ATTR_MIN_CELL_VOLT, 0)
         .attr(f"bms_pack{pack_num}_max_cell_vol", const.ATTR_MAX_CELL_VOLT, 0),
         MilliVoltSensorEntity(
             client, device, f"bms_pack{pack_num}_min_cell_vol",
-            const.SLAVE_MIN_CELL_VOLT if pack_num == 1 else f"Battery Pack {pack_num} Min Cell Voltage", False
+            min_cell_volt_const, False
         ),
         MilliVoltSensorEntity(
             client, device, f"bms_pack{pack_num}_max_cell_vol",
-            const.SLAVE_MAX_CELL_VOLT if pack_num == 1 else f"Battery Pack {pack_num} Max Cell Voltage", False
+            max_cell_volt_const, False
         ),
     ]
 
@@ -325,6 +345,39 @@ class River3(BaseInternalDevice):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._detected_pack_types: dict[int, str] = {}
+        self._pack1_entities: list[SensorEntity] = []
+
+    def _update_pack1_entity_names(self, pack_type: str) -> None:
+        """Update pack1 entity display names based on detected device type."""
+        if not self._pack1_entities:
+            return
+
+        # Map device type to name prefixes
+        prefixes = {
+            PackType.EXPANSION: "Expansion Battery",
+            PackType.RAPID_POWER_BANK: "Rapid Power Bank",
+        }
+        prefix = prefixes.get(pack_type, "Secondary Battery")
+
+        # Name mappings from generic names to device-specific names
+        name_updates = {
+            "Secondary Battery Level": f"{prefix} Level",
+            "Secondary Battery State of Health": f"{prefix} State of Health",
+            "Secondary Battery Cycles": f"{prefix} Cycles",
+            "Secondary Battery Temperature": f"{prefix} Temperature",
+            "Secondary Battery Voltage": f"{prefix} Voltage",
+            "Secondary Battery Design Capacity": f"{prefix} Design Capacity",
+            "Secondary Battery Full Capacity": f"{prefix} Full Capacity",
+            "Secondary Battery Remain Capacity": f"{prefix} Remain Capacity",
+            "Secondary Battery Min Cell Temperature": f"{prefix} Min Cell Temperature",
+            "Secondary Battery Max Cell Temperature": f"{prefix} Max Cell Temperature",
+            "Secondary Battery Min Cell Voltage": f"{prefix} Min Cell Voltage",
+            "Secondary Battery Max Cell Voltage": f"{prefix} Max Cell Voltage",
+        }
+
+        for entity in self._pack1_entities:
+            if hasattr(entity, "_attr_name") and entity._attr_name in name_updates:
+                entity._attr_name = name_updates[entity._attr_name]
 
     @staticmethod
     def default_charging_power_step() -> int:
@@ -332,6 +385,7 @@ class River3(BaseInternalDevice):
 
     @override
     def sensors(self, client: EcoflowApiClient) -> list[SensorEntity]:
+        self._pack1_entities = _create_pack_sensors(client, self, 1)
         return [
             # bms_design_cap/bms_full_cap/bms_remain_cap (DisplayPropertyUpload /
             # RuntimePropertyUpload) never populate on real hardware; the equivalent
@@ -389,7 +443,7 @@ class River3(BaseInternalDevice):
             # in the EcoFlow app (BMSHeartBeatReport num=1; num=0 is the built-in main pack).
             # Stays unavailable on units without one; auto-enables itself once real data arrives.
             # Device type detection happens at runtime and is logged when data arrives.
-            *_create_pack_sensors(client, self, 1),
+            *self._pack1_entities,
             QuotaStatusSensorEntity(client, self),
         ]
 
@@ -717,11 +771,15 @@ class River3(BaseInternalDevice):
                     if pack_num is not None:
                         # Detect pack type (Main, Expansion, or Rapid Power Bank)
                         pack_type = _identify_pack_type(result)
-                        self._detected_pack_types[pack_num] = pack_type
-                        _LOGGER.debug(
-                            f"[River3] Detected pack {pack_num} as {_get_pack_display_name(pack_type)} "
-                            f"(sn={result.get('bms_sn')})"
-                        )
+                        if pack_num not in self._detected_pack_types:
+                            self._detected_pack_types[pack_num] = pack_type
+                            _LOGGER.debug(
+                                f"[River3] Detected pack {pack_num} as {_get_pack_display_name(pack_type)} "
+                                f"(sn={result.get('bms_sn')})"
+                            )
+                            # Update entity names for pack 1 based on detected type
+                            if pack_num == 1:
+                                self._update_pack1_entity_names(pack_type)
                         result.update({f"bms_pack{pack_num}_{k}": v for k, v in result.items()})
                     return result
                 except Exception as e:
