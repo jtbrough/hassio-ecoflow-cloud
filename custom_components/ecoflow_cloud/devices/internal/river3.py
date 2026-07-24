@@ -52,6 +52,140 @@ from custom_components.ecoflow_cloud.switch import BeeperEntity, EnabledEntity
 _LOGGER = logging.getLogger(__name__)
 
 
+class PackType:
+    """Detected type of battery pack"""
+    MAIN = "main"
+    EXPANSION = "expansion"
+    RAPID_POWER_BANK = "rapid_power_bank"
+
+
+def _identify_pack_type(bms_data: dict[str, Any]) -> str:
+    """Identify pack type from BMS heartbeat data.
+
+    Heuristics:
+    - Rapid Power Bank: pack_sn contains "PC0C" or similar pattern
+    - Expansion Battery: other patterns
+    - Main Battery: pack num = 0
+    """
+    pack_sn = bms_data.get("bms_sn", "") or bms_data.get("pack_sn", "")
+
+    # Rapid Power Bank typically has "PC0C" or "PB" in SN
+    if "PC0C" in pack_sn or "PB" in pack_sn:
+        return PackType.RAPID_POWER_BANK
+
+    # Otherwise assume expansion battery if pack_sn exists and is different
+    if pack_sn and bms_data.get("num", 0) > 0:
+        return PackType.EXPANSION
+
+    return PackType.MAIN
+
+
+def _get_pack_display_name(pack_type: str) -> str:
+    """Get display name for pack type"""
+    if pack_type == PackType.RAPID_POWER_BANK:
+        return "Rapid Power Bank"
+    elif pack_type == PackType.EXPANSION:
+        return "Expansion Battery"
+    return "Main Battery"
+
+
+def _create_pack_sensors(
+    client: EcoflowApiClient,
+    device: "River3",
+    pack_num: int,
+    pack_type_hint: str | None = None,
+) -> list[SensorEntity]:
+    """Create sensor entities for a battery pack with appropriate names.
+
+    Args:
+        client: EcoFlow API client
+        device: River3 device instance
+        pack_num: Pack number (0, 1, 2, etc.)
+        pack_type_hint: Override detected pack type (for testing)
+
+    Returns:
+        List of sensor entities for this pack
+    """
+    if pack_num == 0:
+        # Main battery - always present
+        return [
+            LevelSensorEntity(client, device, "bms_pack0_soc", const.MAIN_BATTERY_LEVEL)
+            .attr("bms_pack0_design_cap", const.ATTR_DESIGN_CAPACITY, 0)
+            .attr("bms_pack0_full_cap", const.ATTR_FULL_CAPACITY, 0)
+            .attr("bms_pack0_remain_cap", const.ATTR_REMAIN_CAPACITY, 0),
+            CapacitySensorEntity(client, device, "bms_pack0_design_cap", const.MAIN_DESIGN_CAPACITY, False),
+            CapacitySensorEntity(client, device, "bms_pack0_full_cap", const.MAIN_FULL_CAPACITY, False),
+            CapacitySensorEntity(client, device, "bms_pack0_remain_cap", const.MAIN_REMAIN_CAPACITY, False),
+            StateOfHealthSensorEntity(client, device, "bms_pack0_soh", const.SOH),
+            CyclesSensorEntity(client, device, "bms_pack0_cycles", const.CYCLES),
+            TempSensorEntity(client, device, "bms_pack0_temp", const.BATTERY_TEMP, False, True)
+            .attr("bms_pack0_min_cell_temp", const.ATTR_MIN_CELL_TEMP, 0)
+            .attr("bms_pack0_max_cell_temp", const.ATTR_MAX_CELL_TEMP, 0),
+            TempSensorEntity(client, device, "bms_pack0_min_cell_temp", const.MIN_CELL_TEMP, False),
+            TempSensorEntity(client, device, "bms_pack0_max_cell_temp", const.MAX_CELL_TEMP, False),
+            MilliVoltSensorEntity(client, device, "bms_pack0_vol", const.BATTERY_VOLT, False)
+            .attr("bms_pack0_min_cell_vol", const.ATTR_MIN_CELL_VOLT, 0)
+            .attr("bms_pack0_max_cell_vol", const.ATTR_MAX_CELL_VOLT, 0),
+            MilliVoltSensorEntity(client, device, "bms_pack0_min_cell_vol", const.MIN_CELL_VOLT, False),
+            MilliVoltSensorEntity(client, device, "bms_pack0_max_cell_vol", const.MAX_CELL_VOLT, False),
+        ]
+
+    # For packs 1+, use generic names that work for any device type
+    # Pack type will be detected at runtime and logged
+    suffix = "expansion" if pack_num == 1 else f"pack{pack_num}"
+    level_const = const.SLAVE_BATTERY_LEVEL if pack_num == 1 else f"Battery Pack {pack_num} Level"
+    soh_const = const.SLAVE_SOH if pack_num == 1 else f"Battery Pack {pack_num} State of Health"
+    cycles_const = const.SLAVE_CYCLES if pack_num == 1 else f"Battery Pack {pack_num} Cycles"
+    temp_const = const.SLAVE_BATTERY_TEMP if pack_num == 1 else f"Battery Pack {pack_num} Temperature"
+    volt_const = const.SLAVE_BATTERY_VOLT if pack_num == 1 else f"Battery Pack {pack_num} Voltage"
+
+    return [
+        LevelSensorEntity(
+            client, device, f"bms_pack{pack_num}_soc",
+            level_const, False, True
+        )
+        .attr(f"bms_pack{pack_num}_design_cap", const.ATTR_DESIGN_CAPACITY, 0)
+        .attr(f"bms_pack{pack_num}_full_cap", const.ATTR_FULL_CAPACITY, 0)
+        .attr(f"bms_pack{pack_num}_remain_cap", const.ATTR_REMAIN_CAPACITY, 0),
+        CapacitySensorEntity(
+            client, device, f"bms_pack{pack_num}_design_cap",
+            const.SLAVE_DESIGN_CAPACITY if pack_num == 1 else f"Battery Pack {pack_num} Design Capacity", False
+        ),
+        CapacitySensorEntity(
+            client, device, f"bms_pack{pack_num}_full_cap",
+            const.SLAVE_FULL_CAPACITY if pack_num == 1 else f"Battery Pack {pack_num} Full Capacity", False
+        ),
+        CapacitySensorEntity(
+            client, device, f"bms_pack{pack_num}_remain_cap",
+            const.SLAVE_REMAIN_CAPACITY if pack_num == 1 else f"Battery Pack {pack_num} Remain Capacity", False
+        ),
+        StateOfHealthSensorEntity(client, device, f"bms_pack{pack_num}_soh", soh_const),
+        CyclesSensorEntity(client, device, f"bms_pack{pack_num}_cycles", cycles_const, False, True),
+        TempSensorEntity(client, device, f"bms_pack{pack_num}_temp", temp_const, False, True)
+        .attr(f"bms_pack{pack_num}_min_cell_temp", const.ATTR_MIN_CELL_TEMP, 0)
+        .attr(f"bms_pack{pack_num}_max_cell_temp", const.ATTR_MAX_CELL_TEMP, 0),
+        TempSensorEntity(
+            client, device, f"bms_pack{pack_num}_min_cell_temp",
+            const.SLAVE_MIN_CELL_TEMP if pack_num == 1 else f"Battery Pack {pack_num} Min Cell Temperature", False
+        ),
+        TempSensorEntity(
+            client, device, f"bms_pack{pack_num}_max_cell_temp",
+            const.SLAVE_MAX_CELL_TEMP if pack_num == 1 else f"Battery Pack {pack_num} Max Cell Temperature", False
+        ),
+        MilliVoltSensorEntity(client, device, f"bms_pack{pack_num}_vol", volt_const, False)
+        .attr(f"bms_pack{pack_num}_min_cell_vol", const.ATTR_MIN_CELL_VOLT, 0)
+        .attr(f"bms_pack{pack_num}_max_cell_vol", const.ATTR_MAX_CELL_VOLT, 0),
+        MilliVoltSensorEntity(
+            client, device, f"bms_pack{pack_num}_min_cell_vol",
+            const.SLAVE_MIN_CELL_VOLT if pack_num == 1 else f"Battery Pack {pack_num} Min Cell Voltage", False
+        ),
+        MilliVoltSensorEntity(
+            client, device, f"bms_pack{pack_num}_max_cell_vol",
+            const.SLAVE_MAX_CELL_VOLT if pack_num == 1 else f"Battery Pack {pack_num} Max Cell Voltage", False
+        ),
+    ]
+
+
 class River3CommandMessage(PrivateAPIMessageProtocol):
     """Message wrapper for River 3 protobuf commands."""
 
@@ -188,6 +322,10 @@ class OutWattsAbsSensorEntity(OutWattsSensorEntity):
 class River3(BaseInternalDevice):
     """EcoFlow River 3 device implementation using protobuf decoding."""
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._detected_pack_types: dict[int, str] = {}
+
     @staticmethod
     def default_charging_power_step() -> int:
         return 50
@@ -246,29 +384,12 @@ class River3(BaseInternalDevice):
             OutEnergySensorEntity(client, self, "dc12v_out_energy", "DC 12V Output Energy", False),
             OutEnergySensorEntity(client, self, "typec_out_energy", "Type-C Output Energy", False),
             OutEnergySensorEntity(client, self, "usba_out_energy", "USB-A Output Energy", False),
-            # River 3 Plus expansion battery pack, labeled "Extra Battery" in the
-            # EcoFlow app (BMSHeartBeatReport num=1; num=0 is the built-in main
-            # pack). Stays unavailable on units without one; auto-enables itself
-            # once real data arrives.
-            LevelSensorEntity(client, self, "bms_pack1_soc", const.SLAVE_BATTERY_LEVEL, False, True)
-            .attr("bms_pack1_design_cap", const.ATTR_DESIGN_CAPACITY, 0)
-            .attr("bms_pack1_full_cap", const.ATTR_FULL_CAPACITY, 0)
-            .attr("bms_pack1_remain_cap", const.ATTR_REMAIN_CAPACITY, 0),
-            CapacitySensorEntity(client, self, "bms_pack1_design_cap", const.SLAVE_DESIGN_CAPACITY, False),
-            CapacitySensorEntity(client, self, "bms_pack1_full_cap", const.SLAVE_FULL_CAPACITY, False),
-            CapacitySensorEntity(client, self, "bms_pack1_remain_cap", const.SLAVE_REMAIN_CAPACITY, False),
-            StateOfHealthSensorEntity(client, self, "bms_pack1_soh", const.SLAVE_SOH),
-            CyclesSensorEntity(client, self, "bms_pack1_cycles", const.SLAVE_CYCLES, False, True),
-            TempSensorEntity(client, self, "bms_pack1_temp", const.SLAVE_BATTERY_TEMP, False, True)
-            .attr("bms_pack1_min_cell_temp", const.ATTR_MIN_CELL_TEMP, 0)
-            .attr("bms_pack1_max_cell_temp", const.ATTR_MAX_CELL_TEMP, 0),
-            TempSensorEntity(client, self, "bms_pack1_min_cell_temp", const.SLAVE_MIN_CELL_TEMP, False),
-            TempSensorEntity(client, self, "bms_pack1_max_cell_temp", const.SLAVE_MAX_CELL_TEMP, False),
-            MilliVoltSensorEntity(client, self, "bms_pack1_vol", const.SLAVE_BATTERY_VOLT, False)
-            .attr("bms_pack1_min_cell_vol", const.ATTR_MIN_CELL_VOLT, 0)
-            .attr("bms_pack1_max_cell_vol", const.ATTR_MAX_CELL_VOLT, 0),
-            MilliVoltSensorEntity(client, self, "bms_pack1_min_cell_vol", const.SLAVE_MIN_CELL_VOLT, False),
-            MilliVoltSensorEntity(client, self, "bms_pack1_max_cell_vol", const.SLAVE_MAX_CELL_VOLT, False),
+            # River 3 Plus secondary pack (expansion battery or Rapid Power Bank)
+            # Labeled as "Extra Battery" for expansion or shown separately for Rapid Power Bank
+            # in the EcoFlow app (BMSHeartBeatReport num=1; num=0 is the built-in main pack).
+            # Stays unavailable on units without one; auto-enables itself once real data arrives.
+            # Device type detection happens at runtime and is logged when data arrives.
+            *_create_pack_sensors(client, self, 1),
             QuotaStatusSensorEntity(client, self),
         ]
 
@@ -594,6 +715,13 @@ class River3(BaseInternalDevice):
                     # readings don't silently overwrite the first's.
                     pack_num = result.get("num")
                     if pack_num is not None:
+                        # Detect pack type (Main, Expansion, or Rapid Power Bank)
+                        pack_type = _identify_pack_type(result)
+                        self._detected_pack_types[pack_num] = pack_type
+                        _LOGGER.debug(
+                            f"[River3] Detected pack {pack_num} as {_get_pack_display_name(pack_type)} "
+                            f"(sn={result.get('bms_sn')})"
+                        )
                         result.update({f"bms_pack{pack_num}_{k}": v for k, v in result.items()})
                     return result
                 except Exception as e:
