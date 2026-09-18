@@ -1,11 +1,11 @@
 ## RIVER_3
 
 *Sensors*
-- Main Battery Level (`bms_batt_soc`)
+- Main Battery Level (`bms_pack0_soc`)
 - Main Design Capacity (`bms_pack0_design_cap`)   _(disabled)_
 - Main Full Capacity (`bms_pack0_full_cap`)   _(disabled)_
 - Main Remain Capacity (`bms_pack0_remain_cap`)   _(disabled)_
-- State of Health (`cms_batt_soh`)
+- State of Health (`bms_pack0_soh`)
 - Battery Level (`cms_batt_soc`)
 - Battery Charging State (`bms_chg_dsg_state`)
 - Total In Power (`pow_in_sum_w`) (energy:  _[Device Name]_ Total In  Energy)

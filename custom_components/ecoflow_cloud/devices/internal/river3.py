@@ -381,7 +381,7 @@ class River3(BaseInternalDevice):
             if hasattr(entity, "_attr_name") and entity._attr_name in name_updates:
                 entity._attr_name = name_updates[entity._attr_name]
                 if getattr(entity, "hass", None) is not None:
-                    entity.async_write_ha_state()
+                    entity.schedule_update_ha_state()
 
     @staticmethod
     def default_charging_power_step() -> int:
@@ -395,14 +395,14 @@ class River3(BaseInternalDevice):
             # RuntimePropertyUpload) never populate on real hardware; the equivalent
             # BMSHeartBeatReport fields for the main pack (num=0), exposed under
             # bms_pack0_*, do.
-            LevelSensorEntity(client, self, "bms_batt_soc", const.MAIN_BATTERY_LEVEL)
+            LevelSensorEntity(client, self, "bms_pack0_soc", const.MAIN_BATTERY_LEVEL)
             .attr("bms_pack0_design_cap", const.ATTR_DESIGN_CAPACITY, 0)
             .attr("bms_pack0_full_cap", const.ATTR_FULL_CAPACITY, 0)
             .attr("bms_pack0_remain_cap", const.ATTR_REMAIN_CAPACITY, 0),
             CapacitySensorEntity(client, self, "bms_pack0_design_cap", const.MAIN_DESIGN_CAPACITY, False),
             CapacitySensorEntity(client, self, "bms_pack0_full_cap", const.MAIN_FULL_CAPACITY, False),
             CapacitySensorEntity(client, self, "bms_pack0_remain_cap", const.MAIN_REMAIN_CAPACITY, False),
-            StateOfHealthSensorEntity(client, self, "cms_batt_soh", const.SOH),
+            StateOfHealthSensorEntity(client, self, "bms_pack0_soh", const.SOH),
             LevelSensorEntity(client, self, "cms_batt_soc", const.COMBINED_BATTERY_LEVEL),
             River3ChargingStateSensorEntity(client, self, "bms_chg_dsg_state", const.BATTERY_CHARGING_STATE),
             InWattsSensorEntity(client, self, "pow_in_sum_w", const.TOTAL_IN_POWER).with_energy(),
