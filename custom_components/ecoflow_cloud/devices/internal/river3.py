@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from homeassistant.components.select import SelectEntity
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.components.number import NumberEntity
@@ -63,18 +65,18 @@ def _identify_pack_type(bms_data: dict[str, Any]) -> str:
     """Identify pack type from BMS heartbeat data.
 
     Heuristics:
-    - Rapid Power Bank: pack_sn contains "PC0C" or similar pattern
-    - Expansion Battery: other patterns
-    - Main Battery: pack num = 0
+    - Rapid Power Bank: pack_sn contains "PC0C" or "PB" in SN
+    - Expansion Battery: pack num > 0
+    - Main Battery: pack num == 0
     """
-    pack_sn = bms_data.get("bms_sn", "") or bms_data.get("pack_sn", "")
+    pack_sn = str(bms_data.get("bms_sn", "") or bms_data.get("pack_sn", ""))
 
     # Rapid Power Bank typically has "PC0C" or "PB" in SN
     if "PC0C" in pack_sn or "PB" in pack_sn:
         return PackType.RAPID_POWER_BANK
 
-    # Otherwise assume expansion battery if pack_sn exists and is different
-    if pack_sn and bms_data.get("num", 0) > 0:
+    # Otherwise assume expansion battery if pack num > 0
+    if bms_data.get("num", 0) > 0:
         return PackType.EXPANSION
 
     return PackType.MAIN
@@ -91,7 +93,7 @@ def _get_pack_display_name(pack_type: str) -> str:
 
 def _create_pack_sensors(
     client: EcoflowApiClient,
-    device: "River3",
+    device: River3,
     pack_num: int,
     pack_type_hint: str | None = None,
 ) -> list[SensorEntity]:
@@ -378,6 +380,8 @@ class River3(BaseInternalDevice):
         for entity in self._pack1_entities:
             if hasattr(entity, "_attr_name") and entity._attr_name in name_updates:
                 entity._attr_name = name_updates[entity._attr_name]
+                if getattr(entity, "hass", None) is not None:
+                    entity.async_write_ha_state()
 
     @staticmethod
     def default_charging_power_step() -> int:
@@ -771,7 +775,8 @@ class River3(BaseInternalDevice):
                     if pack_num is not None:
                         # Detect pack type (Main, Expansion, or Rapid Power Bank)
                         pack_type = _identify_pack_type(result)
-                        if pack_num not in self._detected_pack_types:
+                        prev_type = self._detected_pack_types.get(pack_num)
+                        if prev_type != pack_type:
                             self._detected_pack_types[pack_num] = pack_type
                             _LOGGER.debug(
                                 f"[River3] Detected pack {pack_num} as {_get_pack_display_name(pack_type)} "

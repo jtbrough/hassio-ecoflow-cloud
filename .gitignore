@@ -12,3 +12,5 @@ tests
 tools
 mise.local.toml
 .claude
+.mypy_cache
+.pytest_cache

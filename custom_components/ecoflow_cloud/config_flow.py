@@ -476,11 +476,16 @@ class EcoflowConfigFlow(ConfigFlow, domain=ECOFLOW_DOMAIN):
 
         if not user_input:
             device_list = list(device_by_product.keys())
+            default_device_type = (
+                self.cloud_device.device_type
+                if self.cloud_device.device_type in device_list
+                else (device_list[0] if device_list else None)
+            )
             return self.async_show_form(
                 step_id="confirm_cloud_device",
                 data_schema=vol.Schema(
                     {
-                        vol.Required(CONF_DEVICE_TYPE, default=self.cloud_device.device_type): selector.SelectSelector(
+                        vol.Required(CONF_DEVICE_TYPE, default=default_device_type): selector.SelectSelector(
                             selector.SelectSelectorConfig(
                                 options=device_list,
                                 mode=selector.SelectSelectorMode.DROPDOWN,

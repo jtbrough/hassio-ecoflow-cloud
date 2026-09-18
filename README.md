@@ -559,7 +559,7 @@ from Home Assistant.
 
 </p></details>
 
-<details><summary> RIVER_3 <i>(sensors: 36, switches: 6, sliders: 4, selects: 5)</i> </summary>
+<details><summary> RIVER_3 <i>(sensors: 48, switches: 6, sliders: 4, selects: 6)</i> </summary>
 <p>
 
 *Sensors*
@@ -598,6 +598,18 @@ from Home Assistant.
 - DC 12V Output Energy  _(disabled)_
 - Type-C Output Energy  _(disabled)_
 - USB-A Output Energy  _(disabled)_
+- Secondary Battery Level  _(auto)_
+- Secondary Battery Design Capacity  _(disabled)_
+- Secondary Battery Full Capacity  _(disabled)_
+- Secondary Battery Remain Capacity  _(disabled)_
+- Secondary Battery State of Health
+- Secondary Battery Cycles  _(auto)_
+- Secondary Battery Temperature  _(auto)_
+- Secondary Battery Min Cell Temperature  _(disabled)_
+- Secondary Battery Max Cell Temperature  _(disabled)_
+- Secondary Battery Voltage  _(disabled)_
+- Secondary Battery Min Cell Voltage  _(disabled)_
+- Secondary Battery Max Cell Voltage  _(disabled)_
 - Status
 
 *Switches*
@@ -620,6 +632,7 @@ from Home Assistant.
 - Screen Timeout
 - Unit Timeout
 - AC Timeout
+- Light Mode
 
 </p></details>
 
@@ -662,18 +675,18 @@ from Home Assistant.
 - DC 12V Output Energy  _(disabled)_
 - Type-C Output Energy  _(disabled)_
 - USB-A Output Energy  _(disabled)_
-- Slave Battery Level  _(auto)_
-- Slave Design Capacity  _(disabled)_
-- Slave Full Capacity  _(disabled)_
-- Slave Remain Capacity  _(disabled)_
-- Slave State of Health
-- Slave Cycles  _(auto)_
-- Slave Battery Temperature  _(auto)_
-- Slave Min Cell Temperature  _(disabled)_
-- Slave Max Cell Temperature  _(disabled)_
-- Slave Battery Volts  _(disabled)_
-- Slave Min Cell Volts  _(disabled)_
-- Slave Max Cell Volts  _(disabled)_
+- Secondary Battery Level  _(auto)_
+- Secondary Battery Design Capacity  _(disabled)_
+- Secondary Battery Full Capacity  _(disabled)_
+- Secondary Battery Remain Capacity  _(disabled)_
+- Secondary Battery State of Health
+- Secondary Battery Cycles  _(auto)_
+- Secondary Battery Temperature  _(auto)_
+- Secondary Battery Min Cell Temperature  _(disabled)_
+- Secondary Battery Max Cell Temperature  _(disabled)_
+- Secondary Battery Voltage  _(disabled)_
+- Secondary Battery Min Cell Voltage  _(disabled)_
+- Secondary Battery Max Cell Voltage  _(disabled)_
 - Status
 
 *Switches*

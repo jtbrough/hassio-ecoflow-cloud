@@ -1,4 +1,4 @@
-## RIVER_3
+## RIVER_3_PLUS
 
 *Sensors*
 - Main Battery Level (`bms_batt_soc`)
